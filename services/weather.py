@@ -1,10 +1,12 @@
 from datetime import datetime
 import math
+from typing import Any, Optional
+
 import requests
 
 
 class WeatherService:
-    def __init__(self):
+    def __init__(self) -> None:
         self.code_to_smile: dict[str, str] = {
             "Clear": "Ясно \U00002600",
             "Clouds": "Облачно \U00002601",
@@ -15,15 +17,18 @@ class WeatherService:
             "Mist": "Туман \U0001F32B"
         }
 
-    async def get_weather_forecast(self, city_name: str) -> str | None:
-        """Ваша функция получения погоды, переведенная в асинхронный стиль"""
+    def get_weather_forecast(self, city_name: str) -> str | None:
+        """
+        Ваша функция получения погоды, переведенная в асинхронный стиль
+        """
+
         try:
             # Делаем запрос для получения прогноза погоды
             response = requests.get(
                 "http://api.openweathermap.org/data/2.5/weather?q={}&lang=ru&units=metric&appid=4ba714d9111450e5537f17134b7235e4"
                 .format(city_name)
             )
-            
+
             if response.status_code != 200:
                 return None
 
@@ -47,7 +52,7 @@ class WeatherService:
                 wd = "Посмотри в окно, не пойму что там"
 
             # Формируем текст прогноза
-            weather_text = (
+            weather_text: str = (
                 f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
                 f"Погода в городе: {city}\nТемпература: {cur_temp}°C {wd}\n"
                 f"Влажность: {humidity}%\n"
@@ -58,9 +63,54 @@ class WeatherService:
                 f"Продолжительность дня: {length_of_the_day}\n"
                 f"Хорошего дня!"
             )
-            
+
             return weather_text
         except Exception as e:
+            print(f"Error description: {e}")
+            return None
+
+    def get_forecast_data(
+        self,
+        city_name: str
+    ) -> Optional[dict[str, Any]]:
+        try:
+            # Делаем запрос для получения прогноза погоды
+            response = requests.get(
+                "http://api.openweathermap.org/data/2.5/weather?q={}&lang=ru&units=metric&appid=4ba714d9111450e5537f17134b7235e4"
+                .format(city_name)
+            )
+
+            if response.status_code != 200:
+                return None
+
+            # Парсим данные из json
+            data = response.json()
+            city = data["name"]
+            cur_temp = data["main"]["temp"]
+            humidity = data["main"]["humidity"]
+            pressure = data["main"]["pressure"]
+            wind = data["wind"]["speed"]
+
+            sunrise_timestamp = datetime.fromtimestamp(data["sys"]["sunrise"])
+            sunset_timestamp = datetime.fromtimestamp(data["sys"]["sunset"])
+            length_of_the_day = datetime.fromtimestamp(data["sys"]["sunset"]) \
+                - datetime.fromtimestamp(data["sys"]["sunrise"])
+            weather_description = data["weather"][0]["main"]
+
+            result: dict[str, Any] = {
+                "city_name": city,
+                "temperature": cur_temp,
+                "humidity": humidity,
+                "pressure": pressure,
+                "wind": wind,
+                "sunrise_timestamp": sunrise_timestamp,
+                "sunset_timestamp": sunset_timestamp,
+                "length_of_the_day": length_of_the_day,
+                "weather_description": weather_description
+            }
+            return result
+        except Exception as e:
+            print(f"Error description: {e}")
             return None
 
 

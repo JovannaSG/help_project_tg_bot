@@ -6,7 +6,9 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.state import default_state, State, StatesGroup
 
 from config import subscribed_users, user_cities
+from services.analyze_data import weather_analyzer
 from services.weather import weather_service
+from services.parse_gismeteo import gismeteo_parser
 from keyboards import exit_keyboard, main_menu_keyboard
 
 router = Router()
@@ -42,15 +44,20 @@ async def print_weather_forecast(
     message: types.Message,
     state: FSMContext
 ) -> None:
+    # Получаем из сообщения имя города
     city_name = message.text
-    
+
     # Проверяем, находится ли пользователь в процессе подписки
     user_data = await state.get_data()
     is_subscribing = user_data.get("subscribing", False)
-    
+
     # Получаем прогноз погоды
-    weather_text = await weather_service.get_weather_forecast(city_name)
-    
+    # weather_text = weather_service.get_weather_forecast(city_name)
+    data1 = weather_service.get_forecast_data(city_name)
+    data2 = gismeteo_parser.get_weather(city_name)
+    merged_data = weather_analyzer.merge_all_data(data1, data2)
+    weather_text = weather_analyzer.print_weather_report(merged_data)
+
     if weather_text is None:
         await message.reply(
             text="Ошибка: неправильный ввод названия, повторите еще раз",
